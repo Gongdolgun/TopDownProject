@@ -26,9 +26,11 @@ void UCFeetComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	float leftDistance, rightDistance;
 	FRotator leftRotation, rightRotation;
 
+	// LineTrace를 통해 위치와 회전각 계산
 	Trace(LeftSocket, leftDistance, leftRotation);
 	Trace(RightSocket, rightDistance, rightRotation);
 
+	// 왼쪽 발과 오른쪽 발이 지면에서 얼마나 떨어져 있는지를 측정하고 그 중에서 더 작은 값을 선택
 	float offset = FMath::Min(leftDistance, rightDistance);
 	Data.PelvisDistance.Z = UKismetMathLibrary::FInterpTo(Data.PelvisDistance.Z, offset, DeltaTime, InterpSpeed);
 
@@ -59,22 +61,23 @@ void UCFeetComponent::Trace(FName InName, float& OutDistance, FRotator& OutRotat
 	z = start.Z - OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - TraceDistance;
 	FVector end = FVector(socket.X, socket.Y, z);
 
-
 	TArray<AActor*> ignores;
 	ignores.Add(OwnerCharacter);
 
 	FHitResult hitResult;
 	UKismetSystemLibrary::LineTraceSingle(GetWorld(), start, end, ETraceTypeQuery::TraceTypeQuery1, true, ignores, DrawDebug, hitResult, true, FLinearColor::Green, FLinearColor::Red);
 
-
 	OutDistance = 0;
 	OutRotation = FRotator::ZeroRotator;
 
+	// Hit 지점이 없다면 Return
 	CheckFalse(hitResult.bBlockingHit);
 
+	// 발의 실제 위치와 지면 사이의 거리를 계산
 	float length = (hitResult.ImpactPoint - hitResult.TraceEnd).Size();
 	OutDistance = length + OffsetDistance - TraceDistance;
 
+	// 법선 Vector를 이용해 지면의 기울기 계산
 	float roll = UKismetMathLibrary::DegAtan2(hitResult.Normal.Y, hitResult.Normal.Z);
 	float pitch = -UKismetMathLibrary::DegAtan2(hitResult.Normal.X, hitResult.Normal.Z);
 
